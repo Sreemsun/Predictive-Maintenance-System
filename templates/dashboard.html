@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Predictive Maintenance System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                    <span>PMS</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#overview" class="nav-item active">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"/>
+                        <rect x="14" y="3" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                    <span>Overview</span>
+                </a>
+                <a href="#sensors" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                    </svg>
+                    <span>Sensors</span>
+                </a>
+                <a href="#predictions" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                        <polyline points="17 6 23 6 23 12"/>
+                    </svg>
+                    <span>Predictions</span>
+                </a>
+                <a href="#alerts" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <span>Alerts</span>
+                    <span class="badge" id="alertBadge">0</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">{{ username[0].upper() }}</div>
+                    <div class="user-details">
+                        <div class="user-name">{{ username }}</div>
+                        <div class="user-role">Administrator</div>
+                    </div>
+                </div>
+                <a href="/logout" class="logout-button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="dashboard-header">
+                <div class="header-left">
+                    <h1>Equipment Monitoring Dashboard</h1>
+                    <p class="timestamp">Last updated: <span id="lastUpdate">--</span></p>
+                </div>
+                <div class="header-right">
+                    <button class="refresh-button" id="refreshButton">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"/>
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
+            </header>
+
+            <!-- Health Score Cards -->
+            <section class="health-cards">
+                <div class="card health-card" id="pump-card">
+                    <div class="card-icon pump">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                    <div class="card-content">
+                        <h3>Pump A-01</h3>
+                        <div class="health-score">
+                            <span class="score-value" id="pump-score">--</span>
+                            <span class="score-label">Health Score</span>
+                        </div>
+                        <div class="status-indicator" id="pump-status">
+                            <span class="status-dot"></span>
+                            <span class="status-text">Checking...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card health-card" id="motor-card">
+                    <div class="card-icon motor">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                        </svg>
+                    </div>
+                    <div class="card-content">
+                        <h3>Motor B-02</h3>
+                        <div class="health-score">
+                            <span class="score-value" id="motor-score">--</span>
+                            <span class="score-label">Health Score</span>
+                        </div>
+                        <div class="status-indicator" id="motor-status">
+                            <span class="status-dot"></span>
+                            <span class="status-text">Checking...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card health-card" id="hvac-card">
+                    <div class="card-icon hvac">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                    </div>
+                    <div class="card-content">
+                        <h3>HVAC C-03</h3>
+                        <div class="health-score">
+                            <span class="score-value" id="hvac-score">--</span>
+                            <span class="score-label">Health Score</span>
+                        </div>
+                        <div class="status-indicator" id="hvac-status">
+                            <span class="status-dot"></span>
+                            <span class="status-text">Checking...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card health-card summary-card">
+                    <div class="card-icon summary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                    </div>
+                    <div class="card-content">
+                        <h3>System Status</h3>
+                        <div class="summary-stats">
+                            <div class="stat">
+                                <span class="stat-value" id="active-count">3</span>
+                                <span class="stat-label">Active</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value" id="warning-count">0</span>
+                                <span class="stat-label">Warnings</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value" id="critical-count">0</span>
+                                <span class="stat-label">Critical</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts Section -->
+            <section class="charts-section">
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h2>Real-Time Sensor Data</h2>
+                        <div class="chart-controls">
+                            <select id="timeRange" class="time-select">
+                                <option value="1">Last 1 Hour</option>
+                                <option value="6">Last 6 Hours</option>
+                                <option value="24" selected>Last 24 Hours</option>
+                                <option value="168">Last 7 Days</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="sensorChart" class="chart"></div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h2>Vibration Analysis</h2>
+                    </div>
+                    <div id="vibrationChart" class="chart"></div>
+                </div>
+            </section>
+
+            <!-- Predictions & Alerts Section -->
+            <section class="predictions-alerts-section">
+                <div class="predictions-container">
+                    <div class="section-header">
+                        <h2>Failure Predictions</h2>
+                        <span class="info-icon" title="Predictions based on ML models">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="16" x2="12" y2="12"/>
+                                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                        </span>
+                    </div>
+                    <div id="predictionsList" class="predictions-list">
+                        <div class="loading-spinner"></div>
+                    </div>
+                </div>
+
+                <div class="alerts-container">
+                    <div class="section-header">
+                        <h2>Active Alerts</h2>
+                        <button class="clear-all-button" id="clearAllAlerts">Clear All</button>
+                    </div>
+                    <div id="alertsList" class="alerts-list">
+                        <div class="loading-spinner"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Anomalies Section -->
+            <section class="anomalies-section">
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h2>Anomaly Detection</h2>
+                        <p class="chart-description">Detected anomalies in sensor readings</p>
+                    </div>
+                    <div id="anomalyChart" class="chart"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
