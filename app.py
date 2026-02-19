@@ -50,6 +50,36 @@ def login():
     
     return render_template('login.html')
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        data = request.json
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
+        
+        # Validate input
+        if not username or not email or not password:
+            return jsonify({'success': False, 'message': 'All fields are required'}), 400
+        
+        if len(username) < 3:
+            return jsonify({'success': False, 'message': 'Username must be at least 3 characters'}), 400
+        
+        if len(password) < 6:
+            return jsonify({'success': False, 'message': 'Password must be at least 6 characters'}), 400
+        
+        # Check if username already exists
+        if username in USERS:
+            return jsonify({'success': False, 'message': 'Username already exists'}), 400
+        
+        # Hash password and store user
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+        USERS[username] = hashed_password
+        
+        return jsonify({'success': True, 'message': 'Registration successful! Redirecting to login...'})
+    
+    return render_template('register.html')
+
 @app.route('/logout')
 def logout():
     session.pop('username', None)

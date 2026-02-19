@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Predictive Maintenance System</title>
+    <title>Register - Predictive Maintenance System</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
 </head>
 <body>
@@ -17,14 +17,14 @@
                         <path d="M2 12l10 5 10-5"/>
                     </svg>
                 </div>
-                <h1>Predictive Maintenance System</h1>
-                <p class="subtitle">Monitor, Predict, Prevent</p>
+                <h1>Create Account</h1>
+                <p class="subtitle">Join the Predictive Maintenance System</p>
             </div>
 
-            <form id="loginForm" class="login-form">
+            <form id="registerForm" class="login-form">
                 <div class="form-group">
                     <label for="username">Username</label>
-                    <input type="text" id="username" name="username" required autocomplete="username">
+                    <input type="text" id="username" name="username" required autocomplete="username" minlength="3">
                     <span class="input-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -34,8 +34,19 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required autocomplete="email">
+                    <span class="input-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                    </span>
+                </div>
+
+                <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                    <input type="password" id="password" name="password" required autocomplete="new-password" minlength="6">
                     <span class="input-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -44,24 +55,29 @@
                     </span>
                 </div>
 
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required autocomplete="new-password" minlength="6">
+                    <span class="input-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                    </span>
+                </div>
+
                 <div id="errorMessage" class="error-message" style="display: none;"></div>
+                <div id="successMessage" class="success-message" style="display: none;"></div>
 
                 <button type="submit" class="login-button">
-                    <span class="button-text">Sign In</span>
+                    <span class="button-text">Create Account</span>
                     <span class="button-loader" style="display: none;">
                         <div class="spinner"></div>
                     </span>
                 </button>
             </form>
 
-            <div class="demo-credentials">
-                <p><strong>Demo Credentials:</strong></p>
-                <p>Username: <code>admin</code> | Password: <code>admin123</code></p>
-                <p>Username: <code>operator</code> | Password: <code>operator123</code></p>
-            </div>
-
             <div class="register-link">
-                <p>Don't have an account? <a href="/register">Register here</a></p>
+                <p>Already have an account? <a href="/login">Sign in here</a></p>
             </div>
         </div>
 
@@ -74,6 +90,6 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/register.js') }}"></script>
 </body>
 </html>
