@@ -32,6 +32,20 @@
                     </svg>
                     <span>Overview</span>
                 </a>
+                <a href="/predict" class="nav-item" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-bottom: 0.5rem; border-radius: 8px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                    </svg>
+                    <span>🤖 AI Prediction</span>
+                </a>
+                <a href="/monitor" class="nav-item" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: white; margin-bottom: 1rem; border-radius: 8px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                        <polyline points="17 6 23 6 23 12"/>
+                    </svg>
+                    <span>📊 Real-Time Monitor</span>
+                </a>
                 <a href="#sensors" class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
@@ -99,6 +113,26 @@
                     </button>
                 </div>
             </header>
+
+            <!-- AI Prediction Banner -->
+            <section class="ai-prediction-banner" style="margin-bottom: 2rem;">
+                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border: none;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                        <div style="flex: 1; min-width: 300px;">
+                            <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem;">🤖 AI-Powered Machine Prediction</h2>
+                            <p style="opacity: 0.95; font-size: 1.1rem;">
+                                Use our trained machine learning model to predict machine failures with 98.6% accuracy. 
+                                Simply input your machine parameters and get instant insights!
+                            </p>
+                        </div>
+                        <div>
+                            <a href="/predict" style="display: inline-block; padding: 1rem 2rem; background: white; color: #667eea; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 1.1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: transform 0.3s;">
+                                Try AI Prediction Now →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <!-- Health Score Cards -->
             <section class="health-cards">

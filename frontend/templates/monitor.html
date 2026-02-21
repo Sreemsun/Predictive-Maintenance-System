@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Monitoring - Predictive Maintenance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/monitor.css') }}">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">🔧 Predictive Maintenance</div>
+            <div class="nav-links">
+                <a href="/dashboard">Dashboard</a>
+                <a href="/predict">Predict</a>
+                <a href="/monitor" class="active">Monitor</a>
+                <span class="user-info">👤 {{ username }}</span>
+                <a href="/logout" class="logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="header">
+            <h1>📊 Real-Time Machine Monitoring</h1>
+            <p class="subtitle">Continuous data ingestion, prediction, and visualization</p>
+        </div>
+
+        <!-- Machine Management Section -->
+        <div class="section">
+            <div class="section-header">
+                <h2>🤖 Machine Management</h2>
+                <button class="btn btn-primary" id="showRegisterModal">
+                    <span class="btn-icon">➕</span>
+                    Register New Machine
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="machines-grid" id="machinesGrid">
+                    <div class="loading-message">Loading machines...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Ingestion Section -->
+        <div class="section">
+            <div class="section-header">
+                <h2>📥 Data Ingestion</h2>
+                <div class="ingestion-controls">
+                    <button class="btn btn-secondary" id="singleIngestionBtn">
+                        Single Reading
+                    </button>
+                    <button class="btn btn-info" id="bulkIngestionBtn">
+                        Bulk Upload
+                    </button>
+                    <button class="btn btn-success" id="simulateBtn">
+                        🎮 Simulate Data Stream
+                    </button>
+                </div>
+            </div>
+
+            <div class="card" id="ingestionCard">
+                <p class="info-text">Select an ingestion method above to send data to the system</p>
+            </div>
+        </div>
+
+        <!-- Live Predictions Feed -->
+        <div class="section">
+            <div class="section-header">
+                <h2>⚡ Live Predictions</h2>
+                <div class="auto-refresh">
+                    <label>
+                        <input type="checkbox" id="autoRefresh" checked>
+                        Auto-refresh
+                    </label>
+                    <span class="refresh-interval">(every 5s)</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="predictions-feed" id="predictionsFeed">
+                    <div class="loading-message">Loading predictions...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visualization Section -->
+        <div class="section">
+            <div class="section-header">
+                <h2>📈 Data Visualization</h2>
+                <div class="viz-controls">
+                    <select id="machineSelect" class="select-machine">
+                        <option value="">Select Machine</option>
+                    </select>
+                    <select id="timeRange" class="select-range">
+                        <option value="1">Last 1 Hour</option>
+                        <option value="6">Last 6 Hours</option>
+                        <option value="24" selected>Last 24 Hours</option>
+                        <option value="168">Last 7 Days</option>
+                    </select>
+                    <button class="btn btn-primary" id="loadCharts">
+                        <span class="btn-icon">📊</span>
+                        Load Charts
+                    </button>
+                </div>
+            </div>
+
+            <div class="charts-container">
+                <div class="card chart-card">
+                    <h3>Failure Probability Trend</h3>
+                    <div id="probabilityChart" class="chart"></div>
+                </div>
+
+                <div class="card chart-card">
+                    <h3>Temperature Monitoring</h3>
+                    <div id="temperatureChart" class="chart"></div>
+                </div>
+
+                <div class="card chart-card">
+                    <h3>Operational Parameters</h3>
+                    <div id="parametersChart" class="chart"></div>
+                </div>
+
+                <div class="card chart-card">
+                    <h3>Risk Level Distribution</h3>
+                    <div id="riskChart" class="chart"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Machine Comparison -->
+        <div class="section">
+            <div class="section-header">
+                <h2>🔍 Machine Comparison</h2>
+                <button class="btn btn-primary" id="compareBtn">
+                    Compare Selected
+                </button>
+            </div>
+
+            <div class="card" id="comparisonCard">
+                <div id="comparisonContent">
+                    <p class="info-text">Select machines from the list above to compare their performance</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Alerts -->
+        <div class="section">
+            <div class="section-header">
+                <h2>🚨 Active Alerts</h2>
+                <span class="alert-count" id="alertCount">0</span>
+            </div>
+
+            <div class="card">
+                <div class="alerts-list" id="alertsList">
+                    <div class="loading-message">Loading alerts...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Machine Modal -->
+    <div class="modal" id="registerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Register New Machine</h2>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label>Machine ID</label>
+                    <input type="text" id="machineId" placeholder="e.g., MACHINE-001" required>
+                </div>
+                <div class="form-group">
+                    <label>Machine Name</label>
+                    <input type="text" id="machineName" placeholder="e.g., Hydraulic Pump A" required>
+                </div>
+                <div class="form-group">
+                    <label>Machine Type</label>
+                    <select id="machineType" required>
+                        <option value="">Select Type</option>
+                        <option value="L">L - Low Quality</option>
+                        <option value="M">M - Medium Quality</option>
+                        <option value="H">H - High Quality</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Location (Optional)</label>
+                    <input type="text" id="machineLocation" placeholder="e.g., Factory Floor A">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Register Machine</button>
+                    <button type="button" class="btn btn-secondary" id="cancelModal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Single Ingestion Modal -->
+    <div class="modal" id="ingestionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Send Machine Reading</h2>
+                <button class="modal-close" id="closeIngestionModal">&times;</button>
+            </div>
+            <form id="ingestionForm">
+                <div class="form-group">
+                    <label>Select Machine</label>
+                    <select id="ingestMachineId" required>
+                        <option value="">Select Machine</option>
+                    </select>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Air Temperature (K)</label>
+                        <input type="number" id="ingestAirTemp" step="0.1" placeholder="298.5" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Process Temperature (K)</label>
+                        <input type="number" id="ingestProcessTemp" step="0.1" placeholder="308.7" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Rotational Speed (rpm)</label>
+                        <input type="number" id="ingestSpeed" placeholder="1500" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Torque (Nm)</label>
+                        <input type="number" id="ingestTorque" step="0.1" placeholder="40.0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Tool Wear (min)</label>
+                        <input type="number" id="ingestToolWear" placeholder="50" required>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Send Data & Predict</button>
+                    <button type="button" class="btn btn-secondary" id="cancelIngestionModal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/monitor.js') }}"></script>
+</body>
+</html>

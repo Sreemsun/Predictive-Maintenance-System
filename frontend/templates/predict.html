@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Machine Health Prediction - Predictive Maintenance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/predict.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">🔧 Predictive Maintenance</div>
+            <div class="nav-links">
+                <a href="/dashboard">Dashboard</a>
+                <a href="/predict" class="active">Predict</a>
+                <span class="user-info">👤 {{ username }}</span>
+                <a href="/logout" class="logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Machine Health Prediction</h1>
+            <p class="subtitle">Enter machine parameters to predict failure risk</p>
+        </div>
+
+        <div class="content-wrapper">
+            <!-- Input Form -->
+            <div class="card prediction-form-card">
+                <h2>Machine Parameters</h2>
+                <form id="predictionForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="type">
+                                <span class="label-icon">📦</span>
+                                Machine Type
+                            </label>
+                            <select id="type" name="type" required>
+                                <option value="">Select Type</option>
+                                <option value="L">L - Low Quality</option>
+                                <option value="M">M - Medium Quality</option>
+                                <option value="H">H - High Quality</option>
+                            </select>
+                            <small>Quality variant of the machine</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="air_temp">
+                                <span class="label-icon">🌡️</span>
+                                Air Temperature (K)
+                            </label>
+                            <input type="number" id="air_temp" name="air_temp" 
+                                   step="0.1" min="290" max="310" 
+                                   placeholder="e.g., 298.5" required>
+                            <small>Normal range: 295-305 K</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="process_temp">
+                                <span class="label-icon">🔥</span>
+                                Process Temperature (K)
+                            </label>
+                            <input type="number" id="process_temp" name="process_temp" 
+                                   step="0.1" min="300" max="320" 
+                                   placeholder="e.g., 308.7" required>
+                            <small>Normal range: 305-315 K</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="rotational_speed">
+                                <span class="label-icon">⚙️</span>
+                                Rotational Speed (rpm)
+                            </label>
+                            <input type="number" id="rotational_speed" name="rotational_speed" 
+                                   step="1" min="1000" max="3000" 
+                                   placeholder="e.g., 1500" required>
+                            <small>Normal range: 1200-2500 rpm</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="torque">
+                                <span class="label-icon">🔧</span>
+                                Torque (Nm)
+                            </label>
+                            <input type="number" id="torque" name="torque" 
+                                   step="0.1" min="0" max="100" 
+                                   placeholder="e.g., 40.0" required>
+                            <small>Normal range: 20-70 Nm</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="tool_wear">
+                                <span class="label-icon">⏱️</span>
+                                Tool Wear (minutes)
+                            </label>
+                            <input type="number" id="tool_wear" name="tool_wear" 
+                                   step="1" min="0" max="300" 
+                                   placeholder="e.g., 50" required>
+                            <small>0-240 minutes of usage</small>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="predictBtn">
+                            <span class="btn-icon">🔮</span>
+                            Predict Machine Health
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="resetBtn">
+                            <span class="btn-icon">🔄</span>
+                            Reset Form
+                        </button>
+                        <button type="button" class="btn btn-info" id="sampleBtn">
+                            <span class="btn-icon">📋</span>
+                            Load Sample Data
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Results Display -->
+            <div class="card prediction-result-card" id="resultCard" style="display: none;">
+                <h2>Prediction Results</h2>
+                
+                <div class="result-status" id="resultStatus">
+                    <div class="status-icon" id="statusIcon"></div>
+                    <div class="status-text">
+                        <h3 id="statusTitle"></h3>
+                        <p id="statusMessage"></p>
+                    </div>
+                </div>
+
+                <div class="result-metrics">
+                    <div class="metric">
+                        <div class="metric-label">Failure Probability</div>
+                        <div class="metric-value" id="failureProbability">--</div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-fill" id="probabilityBar"></div>
+                        </div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="metric-label">Confidence Score</div>
+                        <div class="metric-value" id="confidenceScore">--</div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-fill confidence" id="confidenceBar"></div>
+                        </div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="metric-label">Risk Level</div>
+                        <div class="metric-badge" id="riskBadge">--</div>
+                    </div>
+                </div>
+
+                <div class="result-details" id="resultDetails">
+                    <h4>Input Parameters Summary</h4>
+                    <div class="details-grid" id="detailsGrid"></div>
+                </div>
+
+                <div class="result-actions">
+                    <button class="btn btn-primary" id="newPredictionBtn">
+                        <span class="btn-icon">➕</span>
+                        New Prediction
+                    </button>
+                    <button class="btn btn-secondary" id="downloadBtn">
+                        <span class="btn-icon">💾</span>
+                        Download Report
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div class="loading-spinner" id="loadingSpinner" style="display: none;">
+                <div class="spinner"></div>
+                <p>Analyzing machine data...</p>
+            </div>
+        </div>
+
+        <!-- Model Info -->
+        <div class="card model-info" id="modelInfo">
+            <h3>📊 Model Information</h3>
+            <div id="modelInfoContent">Loading model information...</div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/predict.js') }}"></script>
+</body>
+</html>
