@@ -8,39 +8,9 @@ import pandas as pd
 def get_failure_predictions():
     """Get failure predictions for equipment"""
     
-    predictions = []
-    
-    # Simulate predictions with varying confidence levels
-    prediction_scenarios = [
-        {
-            'equipment': 'Pump A-01',
-            'timeToFailure': '12-18 hours',
-            'details': 'Vibration levels increasing beyond normal threshold. Bearing degradation detected.',
-            'confidence': random.randint(75, 90),
-            'confidenceLevel': 'high'
-        },
-        {
-            'equipment': 'Motor B-02',
-            'timeToFailure': '36-42 hours',
-            'details': 'Temperature fluctuations detected. Cooling system efficiency declining.',
-            'confidence': random.randint(60, 75),
-            'confidenceLevel': 'medium'
-        },
-        {
-            'equipment': 'HVAC C-03',
-            'timeToFailure': '2-5 days',
-            'details': 'Pressure anomalies indicate potential compressor issues.',
-            'confidence': random.randint(50, 65),
-            'confidenceLevel': 'medium'
-        }
-    ]
-    
-    # Randomly include 1-2 predictions to simulate real-time predictions
-    num_predictions = random.randint(1, 2)
-    predictions = random.sample(prediction_scenarios, num_predictions)
-    
+    # Return empty predictions - no simulated data
     return {
-        'predictions': predictions,
+        'predictions': [],
         'timestamp': datetime.now().isoformat()
     }
 

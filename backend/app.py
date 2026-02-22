@@ -244,22 +244,21 @@ def register_machine():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/machines/list')
-@login_required
-def list_machines():
-    """Get all registered machines"""
-    try:
-        machines = database.get_all_machines()
-        return jsonify({
-            'success': True,
-            'machines': machines,
-            'total': len(machines)
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+# Commented out - using the more complete version below at line 765
+# @app.route('/api/machines/list')
+# def list_machines():
+#     """Get all registered machines"""
+#     try:
+#         machines = database.get_all_machines()
+#         return jsonify({
+#             'success': True,
+#             'machines': machines,
+#             'total': len(machines)
+#         })
+#     except Exception as e:
+#         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/data/ingest', methods=['POST'])
-@login_required
 def ingest_data():
     """
     Ingest continuous machine data and make prediction
@@ -538,6 +537,386 @@ def compare_machines():
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/readings/recent')
+@login_required
+def get_recent_readings():
+    """Get recent readings from database for dashboard graphs"""
+    try:
+        limit = request.args.get('limit', 50, type=int)
+        machine_id = request.args.get('machine_id')
+        
+        conn = database.get_db_connection()
+        cursor = conn.cursor()
+        
+        if machine_id:
+            query = '''
+                SELECT timestamp, air_temperature, process_temperature, 
+                       rotational_speed, torque, tool_wear
+                FROM machine_readings
+                WHERE machine_id = ?
+                ORDER BY timestamp DESC
+                LIMIT ?
+            '''
+            cursor.execute(query, (machine_id, limit))
+        else:
+            query = '''
+                SELECT timestamp, air_temperature, process_temperature, 
+                       rotational_speed, torque, tool_wear
+                FROM machine_readings
+                ORDER BY timestamp DESC
+                LIMIT ?
+            '''
+            cursor.execute(query, (limit,))
+        
+        readings = cursor.fetchall()
+        conn.close()
+        
+        if not readings:
+            return jsonify({
+                'timestamps': [],
+                'temperature': [],
+                'pressure': [],
+                'vibration': []
+            })
+        
+        # Reverse to get chronological order
+        readings = list(reversed(readings))
+        
+        # Format data for charts (convert temperature from K to C for display)
+        timestamps = [r['timestamp'].split('T')[1][:8] if 'T' in r['timestamp'] else r['timestamp'][-8:] for r in readings]
+        temperature = [r['air_temperature'] - 273.15 for r in readings]  # Convert to Celsius
+        pressure = [r['torque'] * 2 for r in readings]  # Use torque as pressure proxy
+        vibration = [r['rotational_speed'] / 100 for r in readings]  # Scale RPM to vibration
+        
+        return jsonify({
+            'timestamps': timestamps,
+            'temperature': temperature,
+            'pressure': pressure,
+            'vibration': vibration
+        })
+        
+    except Exception as e:
+        print(f"Error getting recent readings: {e}")
+        return jsonify({
+            'timestamps': [],
+            'temperature': [],
+            'pressure': [],
+            'vibration': []
+        })
+
+@app.route('/api/health/calculated')
+@login_required
+def get_calculated_health():
+    """Calculate health scores from recent machine data"""
+    try:
+        conn = database.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get recent predictions grouped by machine type
+        cursor.execute('''
+            SELECT machine_id, AVG(failure_probability) as avg_prob, COUNT(*) as count
+            FROM predictions
+            WHERE timestamp > datetime('now', '-1 hour')
+            GROUP BY machine_id
+        ''')
+        
+        machines_data = cursor.fetchall()
+        conn.close()
+        
+        # Default health scores
+        health_scores = {
+            'pump': {'score': 0, 'status': 'no_data'},
+            'motor': {'score': 0, 'status': 'no_data'},
+            'hvac': {'score': 0, 'status': 'no_data'}
+        }
+        
+        # Map machines to categories and calculate health
+        for machine in machines_data:
+            avg_prob = machine['avg_prob']
+            # Health score = 100 - (failure_probability * 100)
+            score = int(100 - (avg_prob * 100))
+            
+            if score >= 80:
+                status = 'healthy'
+            elif score >= 60:
+                status = 'warning'
+            else:
+                status = 'critical'
+            
+            machine_id = machine['machine_id'].lower()
+            
+            # Map to equipment types
+            if 'pump' in machine_id:
+                health_scores['pump'] = {'score': score, 'status': status}
+            elif 'motor' in machine_id:
+                health_scores['motor'] = {'score': score, 'status': status}
+            elif 'compressor' in machine_id or 'hvac' in machine_id:
+                health_scores['hvac'] = {'score': score, 'status': status}
+        
+        return jsonify(health_scores)
+        
+    except Exception as e:
+        print(f"Error calculating health: {e}")
+        from ml_models.health_calculator import calculate_health_scores
+        return jsonify(calculate_health_scores())
+
+@app.route('/api/predictions/recent')
+@login_required
+def get_recent_predictions_list():
+    """Get recent failure predictions from database"""
+    try:
+        conn = database.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT machine_id, failure_probability, risk_level, timestamp
+            FROM predictions
+            WHERE will_fail = 1 OR risk_level IN ('high', 'critical')
+            ORDER BY timestamp DESC
+            LIMIT 5
+        ''')
+        
+        predictions = cursor.fetchall()
+        conn.close()
+        
+        predictions_list = []
+        for pred in predictions:
+            # Calculate time to failure based on risk level
+            if pred['risk_level'] == 'critical':
+                time_to_failure = '6-12 hours'
+            elif pred['risk_level'] == 'high':
+                time_to_failure = '24-48 hours'
+            else:
+                time_to_failure = '2-5 days'
+            
+            predictions_list.append({
+                'equipment': pred['machine_id'].replace('-', ' ').title(),
+                'timeToFailure': time_to_failure,
+                'details': f'Failure probability: {pred["failure_probability"]*100:.1f}%',
+                'confidence': int(pred['failure_probability'] * 100),
+                'confidenceLevel': pred['risk_level']
+            })
+        
+        return jsonify({
+            'predictions': predictions_list,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error getting predictions: {e}")
+        return jsonify({'predictions': [], 'timestamp': datetime.now().isoformat()})
+
+@app.route('/api/anomalies/detected')
+@login_required
+def get_detected_anomalies():
+    """Detect anomalies from stored data"""
+    try:
+        conn = database.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT timestamp, rotational_speed, air_temperature, torque
+            FROM machine_readings
+            ORDER BY timestamp DESC
+            LIMIT 100
+        ''')
+        
+        readings = cursor.fetchall()
+        conn.close()
+        
+        if not readings:
+            return jsonify({
+                'timestamps': [],
+                'values': [],
+                'anomalies': [],
+                'anomaly_count': 0
+            })
+        
+        readings = list(reversed(readings))
+        
+        # Simple anomaly detection: values outside 2 standard deviations
+        import numpy as np
+        
+        vibrations = [r['rotational_speed'] / 100 for r in readings]
+        mean = np.mean(vibrations)
+        std = np.std(vibrations)
+        
+        anomalies = [abs(v - mean) > 2 * std for v in vibrations]
+        timestamps = [r['timestamp'].split('T')[1][:8] if 'T' in r['timestamp'] else r['timestamp'][-8:] for r in readings]
+        
+        return jsonify({
+            'timestamps': timestamps,
+            'values': vibrations,
+            'anomalies': anomalies,
+            'anomaly_count': sum(anomalies)
+        })
+        
+    except Exception as e:
+        print(f"Error detecting anomalies: {e}")
+        return jsonify({
+            'timestamps': [],
+            'values': [],
+            'anomalies': [],
+            'anomaly_count': 0
+        })
+
+@app.route('/api/machines/list')
+def get_machines_list():
+    """Get list of all machines with their latest status"""
+    try:
+        conn = database.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get unique machines with their latest readings
+        query = '''
+            SELECT DISTINCT mr.machine_id, mr.machine_type,
+                   MAX(mr.timestamp) as last_seen,
+                   (SELECT COUNT(*) FROM machine_readings WHERE machine_id = mr.machine_id) as reading_count
+            FROM machine_readings mr
+            GROUP BY mr.machine_id
+            ORDER BY last_seen DESC
+        '''
+        
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        
+        machines = []
+        for row in rows:
+            machine_id = row[0]
+            
+            # Get latest health prediction
+            pred_query = '''
+                SELECT failure_probability, will_fail, risk_level
+                FROM predictions
+                WHERE machine_id = ?
+                ORDER BY timestamp DESC
+                LIMIT 1
+            '''
+            cursor.execute(pred_query, (machine_id,))
+            pred_row = cursor.fetchone()
+            
+            health_score = 100
+            status = 'active'
+            risk_level = 'LOW'
+            
+            if pred_row:
+                failure_prob = pred_row[0]
+                health_score = int(100 - (failure_prob * 100))
+                risk_level = pred_row[2]
+                
+                if health_score >= 80:
+                    status = 'active'
+                elif health_score >= 60:
+                    status = 'warning'
+                else:
+                    status = 'critical'
+            
+            # Create a readable machine name from ID
+            machine_name = machine_id.replace('-', ' ').title()
+            
+            machines.append({
+                'machine_id': machine_id,
+                'machine_name': machine_name,
+                'machine_type': row[1],
+                'location': 'Default Location',
+                'last_seen': row[2],
+                'last_reading': row[2],  # Same as last_seen
+                'reading_count': row[3],
+                'total_readings': row[3],  # Same as reading_count
+                'health_score': health_score,
+                'status': status,
+                'risk_level': risk_level
+            })
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'machines': machines,
+            'total_count': len(machines)
+        })
+        
+    except Exception as e:
+        print(f"Error getting machines list: {e}")
+        return jsonify({
+            'success': False,
+            'machines': [],
+            'total_count': 0,
+            'error': str(e)
+        })
+
+@app.route('/api/machine/<machine_id>/details')
+def get_machine_details(machine_id):
+    """Get detailed data for a specific machine"""
+    try:
+        limit = request.args.get('limit', 50, type=int)
+        
+        conn = database.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get recent readings
+        query = '''
+            SELECT timestamp, air_temperature, process_temperature, 
+                   rotational_speed, torque, tool_wear
+            FROM machine_readings
+            WHERE machine_id = ?
+            ORDER BY timestamp DESC
+            LIMIT ?
+        '''
+        
+        cursor.execute(query, (machine_id, limit))
+        rows = cursor.fetchall()
+        
+        timestamps = []
+        temperatures = []
+        pressures = []
+        speeds = []
+        torques = []
+        
+        for row in reversed(rows):
+            timestamps.append(row[0])
+            temperatures.append(round(row[1] - 273.15, 2))  # K to C
+            pressures.append(round(row[2] - 273.15, 2))  # Process temp
+            speeds.append(row[3])
+            torques.append(row[4])
+        
+        # Get recent predictions
+        pred_query = '''
+            SELECT timestamp, failure_probability, risk_level
+            FROM predictions
+            WHERE machine_id = ?
+            ORDER BY timestamp DESC
+            LIMIT 10
+        '''
+        cursor.execute(pred_query, (machine_id,))
+        pred_rows = cursor.fetchall()
+        
+        predictions = []
+        for pred_row in pred_rows:
+            predictions.append({
+                'timestamp': pred_row[0],
+                'failure_probability': round(pred_row[1] * 100, 1),
+                'risk_level': pred_row[2]
+            })
+        
+        conn.close()
+        
+        return jsonify({
+            'machine_id': machine_id,
+            'readings': {
+                'timestamps': timestamps,
+                'temperatures': temperatures,
+                'pressures': pressures,
+                'speeds': speeds,
+                'torques': torques
+            },
+            'predictions': predictions
+        })
+        
+    except Exception as e:
+        print(f"Error getting machine details: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/monitor')
 @login_required

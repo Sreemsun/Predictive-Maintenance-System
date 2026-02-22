@@ -134,155 +134,40 @@
                 </div>
             </section>
 
-            <!-- Health Score Cards -->
-            <section class="health-cards">
-                <div class="card health-card" id="pump-card">
-                    <div class="card-icon pump">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12 6 12 12 16 14"/>
-                        </svg>
-                    </div>
-                    <div class="card-content">
-                        <h3>Pump A-01</h3>
-                        <div class="health-score">
-                            <span class="score-value" id="pump-score">--</span>
-                            <span class="score-label">Health Score</span>
+            <!-- System Summary -->
+            <section class="system-summary" style="margin-bottom: 2rem;">
+                <div class="card" style="padding: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <h2 style="margin-bottom: 0.5rem; font-size: 1.5rem;">Monitored Machines</h2>
+                            <p style="color: #6c757d;">Click on any machine to view detailed graphs and analytics</p>
                         </div>
-                        <div class="status-indicator" id="pump-status">
-                            <span class="status-dot"></span>
-                            <span class="status-text">Checking...</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card health-card" id="motor-card">
-                    <div class="card-icon motor">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-                        </svg>
-                    </div>
-                    <div class="card-content">
-                        <h3>Motor B-02</h3>
-                        <div class="health-score">
-                            <span class="score-value" id="motor-score">--</span>
-                            <span class="score-label">Health Score</span>
-                        </div>
-                        <div class="status-indicator" id="motor-status">
-                            <span class="status-dot"></span>
-                            <span class="status-text">Checking...</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card health-card" id="hvac-card">
-                    <div class="card-icon hvac">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                        </svg>
-                    </div>
-                    <div class="card-content">
-                        <h3>HVAC C-03</h3>
-                        <div class="health-score">
-                            <span class="score-value" id="hvac-score">--</span>
-                            <span class="score-label">Health Score</span>
-                        </div>
-                        <div class="status-indicator" id="hvac-status">
-                            <span class="status-dot"></span>
-                            <span class="status-text">Checking...</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card health-card summary-card">
-                    <div class="card-icon summary">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                        </svg>
-                    </div>
-                    <div class="card-content">
-                        <h3>System Status</h3>
-                        <div class="summary-stats">
-                            <div class="stat">
-                                <span class="stat-value" id="active-count">3</span>
-                                <span class="stat-label">Active</span>
+                        <div style="display: flex; gap: 2rem;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 2rem; font-weight: bold; color: #28a745;" id="summary-total">0</div>
+                                <div style="color: #6c757d; font-size: 0.9rem;">Total Machines</div>
                             </div>
-                            <div class="stat">
-                                <span class="stat-value" id="warning-count">0</span>
-                                <span class="stat-label">Warnings</span>
+                            <div style="text-align: center;">
+                                <div style="font-size: 2rem; font-weight: bold; color: #28a745;" id="summary-healthy">0</div>
+                                <div style="color: #6c757d; font-size: 0.9rem;">Healthy</div>
                             </div>
-                            <div class="stat">
-                                <span class="stat-value" id="critical-count">0</span>
-                                <span class="stat-label">Critical</span>
+                            <div style="text-align: center;">
+                                <div style="font-size: 2rem; font-weight: bold; color: #ffc107;" id="summary-warning">0</div>
+                                <div style="color: #6c757d; font-size: 0.9rem;">Warning</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 2rem; font-weight: bold; color: #dc3545;" id="summary-critical">0</div>
+                                <div style="color: #6c757d; font-size: 0.9rem;">Critical</div>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- Charts Section -->
-            <section class="charts-section">
-                <div class="chart-container">
-                    <div class="chart-header">
-                        <h2>Real-Time Sensor Data</h2>
-                        <div class="chart-controls">
-                            <select id="timeRange" class="time-select">
-                                <option value="1">Last 1 Hour</option>
-                                <option value="6">Last 6 Hours</option>
-                                <option value="24" selected>Last 24 Hours</option>
-                                <option value="168">Last 7 Days</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div id="sensorChart" class="chart"></div>
-                </div>
-
-                <div class="chart-container">
-                    <div class="chart-header">
-                        <h2>Vibration Analysis</h2>
-                    </div>
-                    <div id="vibrationChart" class="chart"></div>
-                </div>
-            </section>
-
-            <!-- Predictions & Alerts Section -->
-            <section class="predictions-alerts-section">
-                <div class="predictions-container">
-                    <div class="section-header">
-                        <h2>Failure Predictions</h2>
-                        <span class="info-icon" title="Predictions based on ML models">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"/>
-                                <line x1="12" y1="16" x2="12" y2="12"/>
-                                <line x1="12" y1="8" x2="12.01" y2="8"/>
-                            </svg>
-                        </span>
-                    </div>
-                    <div id="predictionsList" class="predictions-list">
-                        <div class="loading-spinner"></div>
-                    </div>
-                </div>
-
-                <div class="alerts-container">
-                    <div class="section-header">
-                        <h2>Active Alerts</h2>
-                        <button class="clear-all-button" id="clearAllAlerts">Clear All</button>
-                    </div>
-                    <div id="alertsList" class="alerts-list">
-                        <div class="loading-spinner"></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Anomalies Section -->
-            <section class="anomalies-section">
-                <div class="chart-container">
-                    <div class="chart-header">
-                        <h2>Anomaly Detection</h2>
-                        <p class="chart-description">Detected anomalies in sensor readings</p>
-                    </div>
-                    <div id="anomalyChart" class="chart"></div>
+            <!-- Machines List -->
+            <section class="machines-list" id="machinesList">
+                <div class="loading-spinner" style="text-align: center; padding: 3rem;">
+                    <p>Loading machines...</p>
                 </div>
             </section>
         </main>

@@ -1,6 +1,6 @@
-// Dashboard State
+﻿// Dashboard State
 let updateInterval = null;
-let sensorDataBuffer = [];
+let currentExpandedMachine = null;
 
 // Initialize Dashboard
 document.addEventListener('DOMContentLoaded', () => {
@@ -11,395 +11,387 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initializeDashboard() {
     updateLastRefreshTime();
-    loadAllData();
+    loadMachines();
 }
 
 function setupEventListeners() {
     // Refresh button
     document.getElementById('refreshButton').addEventListener('click', () => {
-        loadAllData();
+        loadMachines();
+        if (currentExpandedMachine) {
+            loadMachineDetails(currentExpandedMachine);
+        }
         showToast('Data refreshed successfully');
-    });
-
-    // Time range selector
-    document.getElementById('timeRange').addEventListener('change', (e) => {
-        loadHistoricalData(e.target.value);
-    });
-
-    // Clear all alerts
-    document.getElementById('clearAllAlerts').addEventListener('click', () => {
-        document.getElementById('alertsList').innerHTML = '<p class="empty-state">No active alerts</p>';
-        document.getElementById('alertBadge').textContent = '0';
-        showToast('All alerts cleared');
     });
 
     // Navigation
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', (e) => {
-            e.preventDefault();
-            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-            item.classList.add('active');
+            if (!item.getAttribute('href').startsWith('/')) {
+                e.preventDefault();
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                item.classList.add('active');
+            }
         });
     });
 }
 
 function startAutoUpdate() {
-    // Update every 5 seconds
+    // Update every 10 seconds
     updateInterval = setInterval(() => {
-        loadAllData();
-    }, 5000);
+        loadMachines();
+        if (currentExpandedMachine) {
+            loadMachineDetails(currentExpandedMachine);
+        }
+    }, 10000);
 }
 
-async function loadAllData() {
+async function loadMachines() {
     try {
-        await Promise.all([
-            loadHealthScores(),
-            loadSensorData(),
-            loadPredictions(),
-            loadAlerts(),
-            loadAnomalies()
-        ]);
-        updateLastRefreshTime();
-    } catch (error) {
-        console.error('Error loading data:', error);
-        showToast('Error loading data', 'error');
-    }
-}
-
-async function loadHealthScores() {
-    try {
-        const response = await fetch('/api/health-score');
+        const response = await fetch('/api/machines/list');
         const data = await response.json();
 
-        updateHealthCard('pump', data.pump);
-        updateHealthCard('motor', data.motor);
-        updateHealthCard('hvac', data.hvac);
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to load machines');
+        }
 
-        // Update summary
-        const statuses = Object.values(data);
-        const activeCount = statuses.filter(s => s.status === 'healthy').length;
-        const warningCount = statuses.filter(s => s.status === 'warning').length;
-        const criticalCount = statuses.filter(s => s.status === 'critical').length;
+        // Update summary stats
+        const healthyCount = data.machines.filter(m => m.status === 'active').length;
+        const warningCount = data.machines.filter(m => m.status === 'warning').length;
+        const criticalCount = data.machines.filter(m => m.status === 'critical').length;
 
-        document.getElementById('active-count').textContent = activeCount;
-        document.getElementById('warning-count').textContent = warningCount;
-        document.getElementById('critical-count').textContent = criticalCount;
+        document.getElementById('summary-total').textContent = data.total_count;
+        document.getElementById('summary-healthy').textContent = healthyCount;
+        document.getElementById('summary-warning').textContent = warningCount;
+        document.getElementById('summary-critical').textContent = criticalCount;
+
+        // Display machines
+        displayMachines(data.machines);
+        updateLastRefreshTime();
     } catch (error) {
-        console.error('Error loading health scores:', error);
+        console.error('Error loading machines:', error);
+        showToast('Error loading machines', 'error');
     }
 }
 
-function updateHealthCard(equipment, data) {
-    const scoreElement = document.getElementById(`${equipment}-score`);
-    const statusElement = document.getElementById(`${equipment}-status`);
+function displayMachines(machines) {
+    const container = document.getElementById('machinesList');
 
-    scoreElement.textContent = data.score;
-    
-    statusElement.className = `status-indicator ${data.status}`;
-    statusElement.innerHTML = `
-        <span class="status-dot"></span>
-        <span class="status-text">${capitalizeFirst(data.status)}</span>
+    if (machines.length === 0) {
+        container.innerHTML = `
+            <div class="card" style="padding: 3rem; text-align: center;">
+                <h3 style="color: white;">No Machines Found</h3>
+                <p style="color: #6c757d; margin-top: 1rem;">Start sending sensor data to see machines here</p>
+                <a href="/predict" style="display: inline-block; margin-top: 1rem; padding: 0.75rem 1.5rem; background: #667eea; color: white; text-decoration: none; border-radius: 8px;">
+                    Try AI Prediction
+                </a>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = machines.map(machine => createMachineCard(machine)).join('');
+
+    // Add click handlers
+    machines.forEach(machine => {
+        const card = document.getElementById(`machine-${machine.machine_id}`);
+        if (card) {
+            card.addEventListener('click', () => toggleMachineDetails(machine.machine_id));
+        }
+    });
+}
+
+function createMachineCard(machine) {
+    const statusColors = {
+        'active': '#28a745',
+        'warning': '#ffc107',
+        'critical': '#dc3545'
+    };
+
+    const statusIcons = {
+        'active': '✓',
+        'warning': '⚠',
+        'critical': '✗'
+    };
+
+    const machineIcons = {
+        'pump': '⚙️',
+        'motor': '⚡',
+        'compressor': '🔧',
+        'hvac': '❄️',
+        'default': '🏭'
+    };
+
+    // Determine icon based on machine_id instead of machine_type
+    const iconKey = Object.keys(machineIcons).find(key => machine.machine_id.toLowerCase().includes(key)) || 'default';
+    const icon = machineIcons[iconKey];
+
+    // Convert machine type code to readable name
+    const typeNames = { 'L': 'Low Risk Type', 'M': 'Medium Risk Type', 'H': 'High Risk Type' };
+    const typeName = typeNames[machine.machine_type] || machine.machine_type;
+
+    const isExpanded = currentExpandedMachine === machine.machine_id;
+
+    return `
+        <div class="machine-card card" id="machine-${machine.machine_id}" style="margin-bottom: 1rem; cursor: pointer; transition: all 0.3s; border-left: 4px solid ${statusColors[machine.status]};">
+            <div style="display: flex; align-items: center; gap: 1.5rem; padding: 1.5rem;">
+                <div style="font-size: 3rem;">${icon}</div>
+                <div style="flex: 1;">
+                    <h3 style="margin-bottom: 0.5rem; font-size: 1.3rem; color: white;">${machine.machine_name}</h3>
+                    <p style="color: #6c757d; margin-bottom: 0.5rem;">${typeName}</p>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <span style="font-size: 0.9rem; color: #6c757d;">
+                            <strong>Readings:</strong> ${machine.total_readings || machine.reading_count}
+                        </span>
+                        <span style="font-size: 0.9rem; color: #6c757d;">
+                            <strong>Last Seen:</strong> ${formatTimestamp(machine.last_seen)}
+                        </span>
+                    </div>
+                </div>
+                <div style="text-align: center; padding: 0 2rem; border-left: 1px solid #e0e0e0;">
+                    <div style="font-size: 2.5rem; font-weight: bold; color: ${statusColors[machine.status]};">
+                        ${machine.health_score}
+                    </div>
+                    <div style="color: #6c757d; font-size: 0.9rem; margin-top: 0.25rem;">Health Score</div>
+                </div>
+                <div style="text-align: center; min-width: 120px;">
+                    <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 20px; background: ${statusColors[machine.status]}20; color: ${statusColors[machine.status]}; font-weight: bold;">
+                        <span style="font-size: 1.2rem;">${statusIcons[machine.status]}</span>
+                        <span>${machine.status.toUpperCase()}</span>
+                    </div>
+                    <div style="margin-top: 0.5rem; font-size: 0.9rem; color: #6c757d;">
+                        Risk: ${machine.risk_level}
+                    </div>
+                </div>
+                <div style="font-size: 1.5rem; transform: rotate(${isExpanded ? '180deg' : '0deg'}); transition: transform 0.3s; color: #6c757d;">
+                    ▼
+                </div>
+            </div>
+            <div id="details-${machine.machine_id}" style="display: ${isExpanded ? 'block' : 'none'}; border-top: 1px solid #e0e0e0; padding: 2rem; background: #1a1a1a;">
+                <div id="charts-${machine.machine_id}">
+                    <div style="text-align: center; padding: 2rem;">
+                        <div class="loading-spinner"></div>
+                        <p style="color: #6c757d;">Loading machine details...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     `;
 }
 
-async function loadSensorData() {
+function toggleMachineDetails(machineId) {
+    const detailsDiv = document.getElementById(`details-${machineId}`);
+    const wasExpanded = currentExpandedMachine === machineId;
+
+    // Collapse all other machines
+    document.querySelectorAll('[id^="details-"]').forEach(div => {
+        div.style.display = 'none';
+    });
+
+    if (wasExpanded) {
+        // Collapse this machine
+        detailsDiv.style.display = 'none';
+        currentExpandedMachine = null;
+    } else {
+        // Expand this machine
+        detailsDiv.style.display = 'block';
+        currentExpandedMachine = machineId;
+        loadMachineDetails(machineId);
+    }
+
+    // Update arrow rotations
+    document.querySelectorAll('.machine-card').forEach(card => {
+        const id = card.id.replace('machine-', '');
+        const arrow = card.querySelector('[style*="transform: rotate"]');
+        if (arrow) {
+            arrow.style.transform = id === machineId && !wasExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+    });
+}
+
+async function loadMachineDetails(machineId) {
     try {
-        const response = await fetch('/api/sensor-data');
+        const response = await fetch(`/api/machine/${machineId}/details?limit=50`);
         const data = await response.json();
 
-        updateSensorChart(data);
-        updateVibrationChart(data);
-    } catch (error) {
-        console.error('Error loading sensor data:', error);
-    }
-}
-
-function updateSensorChart(data) {
-    const traces = [
-        {
-            x: data.timestamps,
-            y: data.temperature,
-            name: 'Temperature (°C)',
-            type: 'scatter',
-            mode: 'lines',
-            line: { color: '#ef4444', width: 2 }
-        },
-        {
-            x: data.timestamps,
-            y: data.pressure,
-            name: 'Pressure (PSI)',
-            type: 'scatter',
-            mode: 'lines',
-            yaxis: 'y2',
-            line: { color: '#2563eb', width: 2 }
+        const chartsDiv = document.getElementById(`charts-${machineId}`);
+        
+        if (!data.readings.timestamps || data.readings.timestamps.length === 0) {
+            chartsDiv.innerHTML = `
+                <div style="text-align: center; padding: 2rem;">
+                    <h3 style="color: white;">No Data Available</h3>
+                    <p style="color: #6c757d;">No recent sensor readings for this machine</p>
+                </div>
+            `;
+            return;
         }
-    ];
 
-    const layout = {
-        title: '',
-        showlegend: true,
-        legend: { orientation: 'h', y: -0.2 },
-        xaxis: {
-            title: 'Time',
-            showgrid: true,
-            gridcolor: '#f3f4f6'
-        },
-        yaxis: {
-            title: 'Temperature (°C)',
-            showgrid: true,
-            gridcolor: '#f3f4f6'
-        },
-        yaxis2: {
-            title: 'Pressure (PSI)',
-            overlaying: 'y',
-            side: 'right',
-            showgrid: false
-        },
-        margin: { t: 20, r: 60, b: 60, l: 60 },
-        paper_bgcolor: 'white',
-        plot_bgcolor: 'white'
-    };
+        // Create charts container
+        chartsDiv.innerHTML = `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div class="card" style="padding: 1rem; background: #2a2a2a;">
+                    <h4 style="margin-bottom: 1rem; color: white;">Temperature & Pressure</h4>
+                    <div id="temp-chart-${machineId}" style="height: 300px;"></div>
+                </div>
+                <div class="card" style="padding: 1rem; background: #2a2a2a;">
+                    <h4 style="margin-bottom: 1rem; color: white;">Speed & Torque</h4>
+                    <div id="speed-chart-${machineId}" style="height: 300px;"></div>
+                </div>
+            </div>
+            <div class="card" style="padding: 1rem; background: #2a2a2a;">
+                <h4 style="margin-bottom: 1rem; color: white;">Recent Predictions</h4>
+                <div id="predictions-${machineId}"></div>
+            </div>
+        `;
 
-    const config = {
-        responsive: true,
-        displayModeBar: false
-    };
-
-    Plotly.newPlot('sensorChart', traces, layout, config);
-}
-
-function updateVibrationChart(data) {
-    const traces = [
-        {
-            x: data.timestamps,
-            y: data.vibration,
-            name: 'Vibration (mm/s)',
-            type: 'scatter',
-            mode: 'lines',
-            fill: 'tozeroy',
-            line: { color: '#10b981', width: 2 },
-            fillcolor: 'rgba(16, 185, 129, 0.1)'
-        }
-    ];
-
-    const layout = {
-        title: '',
-        showlegend: true,
-        legend: { orientation: 'h', y: -0.2 },
-        xaxis: {
-            title: 'Time',
-            showgrid: true,
-            gridcolor: '#f3f4f6'
-        },
-        yaxis: {
-            title: 'Vibration (mm/s)',
-            showgrid: true,
-            gridcolor: '#f3f4f6'
-        },
-        shapes: [{
-            type: 'line',
-            x0: data.timestamps[0],
-            x1: data.timestamps[data.timestamps.length - 1],
-            y0: 15,
-            y1: 15,
-            line: {
-                color: '#f59e0b',
-                width: 2,
-                dash: 'dash'
+        // Temperature & Pressure Chart
+        Plotly.newPlot(`temp-chart-${machineId}`, [
+            {
+                x: data.readings.timestamps,
+                y: data.readings.temperatures,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Temperature (°C)',
+                line: { color: '#dc3545', width: 2 },
+                marker: { size: 6 }
+            },
+            {
+                x: data.readings.timestamps,
+                y: data.readings.pressures,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Process Temp (°C)',
+                line: { color: '#007bff', width: 2 },
+                marker: { size: 6 }
             }
-        }],
-        annotations: [{
-            x: data.timestamps[Math.floor(data.timestamps.length / 2)],
-            y: 15,
-            text: 'Warning Threshold',
-            showarrow: false,
-            yshift: 10,
-            font: { color: '#f59e0b', size: 10 }
-        }],
-        margin: { t: 20, r: 40, b: 60, l: 60 },
-        paper_bgcolor: 'white',
-        plot_bgcolor: 'white'
-    };
+        ], {
+            margin: { t: 10, r: 10, b: 40, l: 50 },
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#ffffff' },
+            xaxis: { 
+                gridcolor: 'rgba(255,255,255,0.1)',
+                showgrid: true
+            },
+            yaxis: { 
+                gridcolor: 'rgba(255,255,255,0.1)',
+                title: 'Temperature (°C)'
+            },
+            legend: { x: 0, y: 1.1, orientation: 'h' }
+        }, { responsive: true, displayModeBar: false });
 
-    const config = {
-        responsive: true,
-        displayModeBar: false
-    };
+        // Speed & Torque Chart
+        Plotly.newPlot(`speed-chart-${machineId}`, [
+            {
+                x: data.readings.timestamps,
+                y: data.readings.speeds,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Speed (RPM)',
+                line: { color: '#28a745', width: 2 },
+                marker: { size: 6 },
+                yaxis: 'y'
+            },
+            {
+                x: data.readings.timestamps,
+                y: data.readings.torques,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Torque (Nm)',
+                line: { color: '#ffc107', width: 2 },
+                marker: { size: 6 },
+                yaxis: 'y2'
+            }
+        ], {
+            margin: { t: 10, r: 60, b: 40, l: 50 },
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#ffffff' },
+            xaxis: { 
+                gridcolor: 'rgba(255,255,255,0.1)',
+                showgrid: true
+            },
+            yaxis: { 
+                title: 'Speed (RPM)',
+                gridcolor: 'rgba(255,255,255,0.1)'
+            },
+            yaxis2: {
+                title: 'Torque (Nm)',
+                overlaying: 'y',
+                side: 'right'
+            },
+            legend: { x: 0, y: 1.1, orientation: 'h' }
+        }, { responsive: true, displayModeBar: false });
 
-    Plotly.newPlot('vibrationChart', traces, layout, config);
-}
-
-async function loadPredictions() {
-    try {
-        const response = await fetch('/api/predictions');
-        const data = await response.json();
-
-        const predictionsList = document.getElementById('predictionsList');
-        
+        // Predictions Table
+        const predictionsDiv = document.getElementById(`predictions-${machineId}`);
         if (data.predictions.length === 0) {
-            predictionsList.innerHTML = '<p class="empty-state">No predictions available</p>';
-            return;
-        }
-
-        predictionsList.innerHTML = data.predictions.map(pred => `
-            <div class="prediction-item">
-                <div class="prediction-header">
-                    <span class="prediction-title">${pred.equipment}</span>
-                    <span class="prediction-time">${pred.timeToFailure}</span>
-                </div>
-                <div class="prediction-details">${pred.details}</div>
-                <div class="prediction-confidence">
-                    <div class="confidence-bar">
-                        <div class="confidence-fill ${pred.confidenceLevel}" style="width: ${pred.confidence}%"></div>
+            predictionsDiv.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 1rem;">No predictions available</p>';
+        } else {
+            const predictionsHtml = data.predictions.map(pred => {
+                const riskLevel = pred.risk_level.toUpperCase();
+                const riskColor = riskLevel === 'HIGH' ? '#dc3545' : riskLevel === 'MEDIUM' ? '#ffc107' : '#28a745';
+                return `
+                    <div style="display: flex; justify-content: space-between; padding: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.1); color: white;">
+                        <span>${formatTimestamp(pred.timestamp)}</span>
+                        <span style="color: ${riskColor}; font-weight: bold;">${pred.failure_probability}% failure risk</span>
+                        <span style="color: ${riskColor};">${riskLevel}</span>
                     </div>
-                    <span class="confidence-text">${pred.confidence}%</span>
-                </div>
-            </div>
-        `).join('');
-    } catch (error) {
-        console.error('Error loading predictions:', error);
-    }
-}
-
-async function loadAlerts() {
-    try {
-        const response = await fetch('/api/alerts');
-        const data = await response.json();
-
-        const alertsList = document.getElementById('alertsList');
-        const alertBadge = document.getElementById('alertBadge');
-        
-        alertBadge.textContent = data.alerts.length;
-
-        if (data.alerts.length === 0) {
-            alertsList.innerHTML = '<p class="empty-state">No active alerts</p>';
-            return;
+                `;
+            }).join('');
+            predictionsDiv.innerHTML = predictionsHtml;
         }
 
-        alertsList.innerHTML = data.alerts.map(alert => `
-            <div class="alert-item">
-                <div class="alert-header">
-                    <span class="alert-title">${alert.equipment}</span>
-                    <span class="severity-badge ${alert.severity}">${alert.severity}</span>
-                </div>
-                <div class="alert-message">${alert.message}</div>
-                <div class="alert-time">${alert.timestamp}</div>
+    } catch (error) {
+        console.error('Error loading machine details:', error);
+        const chartsDiv = document.getElementById(`charts-${machineId}`);
+        chartsDiv.innerHTML = `
+            <div style="text-align: center; padding: 2rem; color: #dc3545;">
+                <h3>Error Loading Data</h3>
+                <p>${error.message}</p>
             </div>
-        `).join('');
-    } catch (error) {
-        console.error('Error loading alerts:', error);
+        `;
     }
 }
 
-async function loadAnomalies() {
-    try {
-        const response = await fetch('/api/anomalies');
-        const data = await response.json();
+function formatTimestamp(timestamp) {
+    if (!timestamp) return 'N/A';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = (now - date) / 1000; // seconds
 
-        updateAnomalyChart(data);
-    } catch (error) {
-        console.error('Error loading anomalies:', error);
-    }
-}
-
-function updateAnomalyChart(data) {
-    const normalData = data.timestamps.map((t, i) => 
-        data.anomalies[i] ? null : data.values[i]
-    );
-    
-    const anomalyData = data.timestamps.map((t, i) => 
-        data.anomalies[i] ? data.values[i] : null
-    );
-
-    const traces = [
-        {
-            x: data.timestamps,
-            y: normalData,
-            name: 'Normal',
-            type: 'scatter',
-            mode: 'lines',
-            line: { color: '#2563eb', width: 2 }
-        },
-        {
-            x: data.timestamps,
-            y: anomalyData,
-            name: 'Anomaly',
-            type: 'scatter',
-            mode: 'markers',
-            marker: { color: '#ef4444', size: 8 }
-        }
-    ];
-
-    const layout = {
-        title: '',
-        showlegend: true,
-        legend: { orientation: 'h', y: -0.2 },
-        xaxis: {
-            title: 'Time',
-            showgrid: true,
-            gridcolor: '#f3f4f6'
-        },
-        yaxis: {
-            title: 'Sensor Value',
-            showgrid: true,
-            gridcolor: '#f3f4f6'
-        },
-        margin: { t: 20, r: 40, b: 60, l: 60 },
-        paper_bgcolor: 'white',
-        plot_bgcolor: 'white'
-    };
-
-    const config = {
-        responsive: true,
-        displayModeBar: false
-    };
-
-    Plotly.newPlot('anomalyChart', traces, layout, config);
-}
-
-async function loadHistoricalData(hours) {
-    try {
-        const response = await fetch(`/api/historical-data?hours=${hours}`);
-        const data = await response.json();
-        
-        updateSensorChart(data);
-        updateVibrationChart(data);
-    } catch (error) {
-        console.error('Error loading historical data:', error);
+    if (diff < 60) {
+        return 'Just now';
+    } else if (diff < 3600) {
+        return `${Math.floor(diff / 60)} min ago`;
+    } else if (diff < 86400) {
+        return `${Math.floor(diff / 3600)}h ago`;
+    } else {
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
     }
 }
 
 function updateLastRefreshTime() {
     const now = new Date();
-    const timeString = now.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        second: '2-digit'
-    });
-    document.getElementById('lastUpdate').textContent = timeString;
-}
-
-function capitalizeFirst(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
+    document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
 }
 
 function showToast(message, type = 'success') {
+    // Simple toast notification
     const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
     toast.style.cssText = `
         position: fixed;
-        bottom: 20px;
+        top: 20px;
         right: 20px;
-        background: ${type === 'success' ? '#10b981' : '#ef4444'};
+        padding: 1rem 2rem;
+        background: ${type === 'error' ? '#dc3545' : '#28a745'};
         color: white;
-        padding: 12px 24px;
         border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         z-index: 10000;
         animation: slideIn 0.3s ease;
     `;
-    
+    toast.textContent = message;
     document.body.appendChild(toast);
     
     setTimeout(() => {

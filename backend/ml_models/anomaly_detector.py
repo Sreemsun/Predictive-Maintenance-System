@@ -5,26 +5,12 @@ from ml_models.data_simulator import generate_sensor_data
 def detect_anomalies():
     """Detect anomalies in sensor data"""
     
-    # Get recent sensor data
-    data = generate_sensor_data(100)
-    
-    # Detect anomalies in each sensor type
-    vibration_anomalies = _detect_anomalies_zscore(data['vibration'], threshold=2.5)
-    temperature_anomalies = _detect_anomalies_zscore(data['temperature'], threshold=2.5)
-    pressure_anomalies = _detect_anomalies_zscore(data['pressure'], threshold=3.0)
-    
-    # Combine anomalies (if any sensor shows anomaly, mark as anomaly)
-    combined_anomalies = [
-        vib or temp or press
-        for vib, temp, press in zip(vibration_anomalies, temperature_anomalies, pressure_anomalies)
-    ]
-    
-    # For visualization, use vibration data as primary indicator
+    # Return empty anomaly data - no simulated values
     return {
-        'timestamps': data['timestamps'],
-        'values': data['vibration'],
-        'anomalies': combined_anomalies,
-        'anomaly_count': sum(combined_anomalies)
+        'timestamps': [],
+        'values': [],
+        'anomalies': [],
+        'anomaly_count': 0
     }
 
 def _detect_anomalies_zscore(data, threshold=3.0):

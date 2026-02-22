@@ -4,44 +4,10 @@ from datetime import datetime, timedelta
 def get_active_alerts():
     """Get list of active alerts"""
     
-    alert_templates = [
-        {
-            'equipment': 'Pump A-01',
-            'message': 'Vibration levels exceeded threshold (18.5 mm/s)',
-            'severity': 'critical',
-            'timestamp': _get_recent_timestamp(minutes=5)
-        },
-        {
-            'equipment': 'Motor B-02',
-            'message': 'Temperature spike detected (92°C)',
-            'severity': 'warning',
-            'timestamp': _get_recent_timestamp(minutes=12)
-        },
-        {
-            'equipment': 'HVAC C-03',
-            'message': 'Pressure fluctuation detected',
-            'severity': 'warning',
-            'timestamp': _get_recent_timestamp(minutes=25)
-        },
-        {
-            'equipment': 'Pump A-01',
-            'message': 'Bearing temperature above normal range',
-            'severity': 'info',
-            'timestamp': _get_recent_timestamp(minutes=45)
-        }
-    ]
-    
-    # Randomly return 0-3 alerts to simulate real-time system
-    num_alerts = random.randint(0, 3)
-    active_alerts = random.sample(alert_templates, num_alerts) if num_alerts > 0 else []
-    
-    # Sort by severity (critical first)
-    severity_order = {'critical': 0, 'warning': 1, 'info': 2}
-    active_alerts.sort(key=lambda x: severity_order.get(x['severity'], 3))
-    
+    # Return empty alerts - no simulated data
     return {
-        'alerts': active_alerts,
-        'total_count': len(active_alerts)
+        'alerts': [],
+        'total_count': 0
     }
 
 def generate_alert(equipment, sensor_type, value, threshold, severity='warning'):

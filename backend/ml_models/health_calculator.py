@@ -4,11 +4,11 @@ import random
 def calculate_health_scores():
     """Calculate health scores for each equipment"""
     
-    # Simulate health scores with some variability
+    # Return empty data - no simulated values
     scores = {
-        'pump': _generate_health_data('pump'),
-        'motor': _generate_health_data('motor'),
-        'hvac': _generate_health_data('hvac')
+        'pump': {'score': 0, 'status': 'no_data'},
+        'motor': {'score': 0, 'status': 'no_data'},
+        'hvac': {'score': 0, 'status': 'no_data'}
     }
     
     return scores

@@ -2,25 +2,13 @@ import numpy as np
 from datetime import datetime, timedelta
 
 def generate_sensor_data(points=50):
-    """Generate simulated real-time sensor data"""
-    now = datetime.now()
-    timestamps = [(now - timedelta(minutes=i)).strftime('%H:%M:%S') for i in range(points)][::-1]
-    
-    # Base values with noise
-    temperature = 70 + np.random.normal(0, 2, points) + np.sin(np.linspace(0, 2*np.pi, points)) * 5
-    pressure = 100 + np.random.normal(0, 1.5, points) + np.cos(np.linspace(0, 2*np.pi, points)) * 3
-    vibration = 8 + np.random.normal(0, 1, points) + np.abs(np.sin(np.linspace(0, 4*np.pi, points))) * 4
-    
-    # Add occasional spikes to simulate anomalies
-    spike_indices = np.random.choice(points, size=max(1, points//10), replace=False)
-    vibration[spike_indices] += np.random.uniform(5, 10, len(spike_indices))
-    temperature[spike_indices] += np.random.uniform(3, 8, len(spike_indices))
-    
+    """Generate empty sensor data - no simulated values"""
+    # Return empty data
     return {
-        'timestamps': timestamps,
-        'temperature': temperature.tolist(),
-        'pressure': pressure.tolist(),
-        'vibration': vibration.tolist()
+        'timestamps': [],
+        'temperature': [],
+        'pressure': [],
+        'vibration': []
     }
 
 def generate_historical_data(hours=24):

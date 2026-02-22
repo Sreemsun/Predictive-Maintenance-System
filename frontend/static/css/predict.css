@@ -116,13 +116,13 @@ body {
 }
 
 .card h2 {
-    color: #0ea5e9;
+    color: #ffffff;
     margin-bottom: 1.5rem;
     font-size: 1.8rem;
 }
 
 .card h3 {
-    color: #0ea5e9;
+    color: #ffffff;
     margin-bottom: 1rem;
 }
 
@@ -259,7 +259,7 @@ body {
 }
 
 .status-text h3 {
-    color: white;
+    color: #ffffff;
     font-size: 1.8rem;
     margin-bottom: 0.5rem;
 }

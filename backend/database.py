@@ -8,7 +8,9 @@ from datetime import datetime
 import json
 import os
 
-DATABASE_PATH = '../predictive_maintenance.db'
+# Use absolute path to ensure consistency
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATABASE_PATH = os.path.join(BASE_DIR, 'predictive_maintenance.db')
 
 def get_db_connection():
     """Get database connection"""
@@ -125,13 +127,7 @@ def insert_machine_reading(machine_id, machine_type, air_temp, process_temp,
           rotational_speed, torque, tool_wear, timestamp))
     
     reading_id = cursor.lastrowid
-    
-    # Update machine last reading time
-    cursor.execute('''
-        UPDATE machines 
-        SET last_reading_time = ? 
-        WHERE machine_id = ?
-    ''', (timestamp, machine_id))
+    print(f"✅ Inserted reading #{reading_id} for {machine_id}")
     
     conn.commit()
     conn.close()
