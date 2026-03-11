@@ -38,6 +38,9 @@ body {
     font-size: 1.5rem;
     font-weight: bold;
     color: #0ea5e9;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .nav-links {
@@ -60,6 +63,9 @@ body {
 
 .user-info {
     color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .logout-btn {
@@ -87,6 +93,9 @@ body {
     font-size: 2.5rem;
     margin-bottom: 0.5rem;
     color: #0ea5e9;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .subtitle {
@@ -112,6 +121,8 @@ body {
 .section-header h2 {
     color: #ffffff;
     font-size: 1.8rem;
+    display: flex;
+    align-items: center;
 }
 
 /* Card */
