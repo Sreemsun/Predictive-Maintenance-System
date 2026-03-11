@@ -925,4 +925,8 @@ def monitor():
     return render_template('monitor.html', username=session.get('username'))
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Get port from environment variable (for Render deployment) or default to 5000
+    port = int(os.environ.get('PORT', 5000))
+    # Use debug mode only in development
+    debug_mode = os.environ.get('FLASK_ENV') == 'development'
+    app.run(debug=debug_mode, host='0.0.0.0', port=port)

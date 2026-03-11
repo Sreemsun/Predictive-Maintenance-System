@@ -26,10 +26,17 @@ env/
 ENV/
 env.bak/
 venv.bak/
+.venv/
+.venv-1/
 
 # Flask
 instance/
 .webassets-cache
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
 
 # IDEs
 .vscode/

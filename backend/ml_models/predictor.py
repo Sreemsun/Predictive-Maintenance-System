@@ -133,7 +133,9 @@ def load_trained_model(model_type='gradient_boosting'):
         return _loaded_model, _loaded_scaler, _loaded_encoder
     
     try:
-        models_dir = 'backend/trained_models'
+        # Get the correct path to trained_models directory
+        current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        models_dir = os.path.join(current_dir, 'trained_models')
         
         # Load model
         if model_type == 'random_forest':
